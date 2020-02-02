@@ -109,8 +109,9 @@ struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg)
   _command (oled, 0x8d);        // SSD1306_CHARGEPUMP
 //   _command (oled, 0x14);        // Charge pump on, 0x10 for external Vcc
   _command (oled, 0x10);        // Charge pump on, 0x10 for external Vcc
-  _command (oled, 0x20);        // SSD1306_MEMORYMODE
-  _command (oled, 0x00);        // 0x0 act like ks0108
+  // Didn't find this command in the datasheet
+  // _command (oled, 0x20);        // SSD1306_MEMORYMODE
+  // _command (oled, 0x00);        // 0x0 act like ks0108
   _command (oled, 0xd9);        // SSD1306_SETPRECHARGE
   _command (oled, 0x22);        // 0x22 for external Vcc
 
