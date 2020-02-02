@@ -181,27 +181,43 @@ void mgos_ssd1306_refresh (struct mgos_ssd1306 *oled, bool force) {
     return;
 
   if (force || (oled->refresh_top <= 0 && oled->refresh_bottom >= oled->height - 1 && oled->refresh_left <= 0 && oled->refresh_right >= oled->width - 1)) {
-    _command (oled, 0x21);                                // SSD1306_COLUMNADDR
-    _command (oled, oled->col_offset);                    // column start
-    _command (oled, oled->col_offset + oled->width - 1);  // column end
-    _command (oled, 0x22);                      // SSD1306_PAGEADDR
-    _command (oled, 0);                         // page start
-    _command (oled, (oled->height / 8) - 1);    // page end
-    mgos_i2c_write_reg_n (oled->i2c, oled->address, 0x40, oled->height * oled->width / 8, oled->buffer);
+    // _command (oled, 0x21);          // SH 1106 doesn't have this; SSD1306_COLUMNADDR
+    // _command (oled, oled->col_offset);                    // column start
+    // _command (oled, oled->col_offset + oled->width - 1);  // column end
+    // FOR SH 1106
+    // SH 1106 has by default column addressing mode which increments column by 1
+    _command (oled, 0x00 | (oled->col_offset & 0x0f));         // Send col address lower 4
+    _command (oled, 0x10 | ((oled->col_offset & 0xf0) >> 4));  // Send col address higher 4
+   
+    // _command (oled, 0x22);         // SH 1106 doesn't have this; SSD1306_PAGEADDR
+    // _command (oled, 0);                         // page start
+    // _command (oled, (oled->height / 8) - 1);    // page end
+    // FOR SH 1106
+    page_start = 0;
+    page_end = (oled->height / 8) - 1;
+    for (uint8_t i = page_start; i <= page_end; i++) {
+      _command (oled, 0xB0 | i);         // page start address
+      // write width (128) bytes (along the columns) -->
+      mgos_i2c_write_reg_n (oled->i2c, oled->address, 0x40, oled->width, oled->buffer + i * oled->width);
+    }
   } else if ((oled->refresh_top <= oled->refresh_bottom)
              && (oled->refresh_left <= oled->refresh_right)) {
     page_start = oled->refresh_top / 8;
     page_end = oled->refresh_bottom / 8;
-    _command (oled, 0x21);                                    // SSD1306_COLUMNADDR
-    _command (oled, oled->col_offset + oled->refresh_left);   // column start
-    _command (oled, oled->col_offset + oled->refresh_right);  // column end
-    _command (oled, 0x22);        // SSD1306_PAGEADDR
-    _command (oled, page_start);  // page start
-    _command (oled, page_end);    // page end
+    // _command (oled, 0x21);          // SH 1106 doesn't have this; SSD1306_COLUMNADDR
+    // _command (oled, oled->col_offset + oled->refresh_left);   // column start
+    // _command (oled, oled->col_offset + oled->refresh_right);  // column end
+    _command (oled, 0x00 | ((oled->col_offset + oled->refresh_left) & 0x0f));        // Send starting col address lower 4
+    _command (oled, 0x10 | (((oled->col_offset + oled->refresh_left) & 0xf0) >> 4));  // Send starting col address higher 4
+
+    // _command (oled, 0x22);         // SH 1106 doesn't have this; SSD1306_PAGEADDR
+    // _command (oled, page_start);  // page start
+    // _command (oled, page_end);    // page end
 
     for (uint8_t i = page_start; i <= page_end; ++i) {
       uint16_t start = i * oled->width + oled->refresh_left;
       uint16_t len = oled->refresh_right - oled->refresh_left + 1;
+      _command (oled, 0xB0 | i);
       mgos_i2c_write_reg_n (oled->i2c, oled->address, 0x40, len, oled->buffer + start);
     }
   }
