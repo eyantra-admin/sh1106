@@ -98,20 +98,21 @@ struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg)
   _command (oled, 0xda);        // SSD1306_SETCOMPINS
   _command (oled, oled->com_pins);
   _command (oled, 0x81);        // SSD1306_SETCONTRAST
-  _command (oled, 0x7f);        // default contrast ratio
+//   _command (oled, 0x7f);        // default contrast ratio
+  _command (oled, 0x9f);        // default contrast ratio
   _command (oled, 0xa4);        // SSD1306_DISPLAYALLON_RESUME
   _command (oled, 0xa6);        // SSD1306_NORMALDISPLAY
   _command (oled, 0xd5);        // SSD1306_SETDISPLAYCLOCKDIV
   _command (oled, 0x80);        // Suggested value 0x80
   _command (oled, 0xdb);        // SSD1306_VCOMMDESELECT
-  _command (oled, 0x20);        // 0.77 * Vcc (default)
+  _command (oled, 0x40);        // 0.77 * Vcc (default)
   _command (oled, 0x8d);        // SSD1306_CHARGEPUMP
 //   _command (oled, 0x14);        // Charge pump on, 0x10 for external Vcc
   _command (oled, 0x10);        // Charge pump on, 0x10 for external Vcc
   _command (oled, 0x20);        // SSD1306_MEMORYMODE
   _command (oled, 0x00);        // 0x0 act like ks0108
   _command (oled, 0xd9);        // SSD1306_SETPRECHARGE
-  _command (oled, 0xF1);        // 0x22 for external Vcc
+  _command (oled, 0x22);        // 0x22 for external Vcc
 
   LOG (LL_DEBUG, ("Clearing screen buffer"));
   mgos_ssd1306_clear (oled);
