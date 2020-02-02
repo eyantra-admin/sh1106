@@ -120,7 +120,7 @@ struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg)
   mgos_ssd1306_select_font (oled, 0);
 
   LOG (LL_DEBUG, ("Turning on display"));
-  _command (oled, 0x2e);        // SSD1306_SCROLLSTOP
+  // _command (oled, 0x2e);        // SSD1306_SCROLLSTOP
   _command (oled, 0xaf);        // SSD1306_DISPLAYON
 
   LOG (LL_INFO, ("SSD1306 init ok (width: %d, height: %d, address: 0x%02x)", oled->width, oled->height, oled->address));
