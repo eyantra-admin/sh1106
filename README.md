@@ -1,4 +1,4 @@
-# SSD1306 OLED Display Driver Support
+# SH1106 OLED Display Driver Support
 
 This library adds support for the Solomon Systech SSD1306 OLED display driver to Mongoose OS.
 
