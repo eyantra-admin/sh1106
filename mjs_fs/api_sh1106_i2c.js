@@ -27,45 +27,45 @@ load('api_config.js');
 let SSD1306 = {
 
   // some constant values
-  SSD1306_COLOR_TRANSPARENT: -1,	//< Transparent (not drawing)
-  SSD1306_COLOR_BLACK: 0,    			//< Black (pixel off)
-  SSD1306_COLOR_WHITE: 1,    			//< White (or blue, yellow, ... -> pixel is on)
-  SSD1306_COLOR_INVERT: 2,   			//< Invert pixel (XOR)
+  SH1106_COLOR_TRANSPARENT: -1,	//< Transparent (not drawing)
+  SH1106_COLOR_BLACK: 0,    			//< Black (pixel off)
+  SH1106_COLOR_WHITE: 1,    			//< White (or blue, yellow, ... -> pixel is on)
+  SH1106_COLOR_INVERT: 2,   			//< Invert pixel (XOR)
 
   _oled: null,
   
-  _getGlobal: ffi('void *mgos_ssd1306_get_global(void)'),
-  _getWidth: ffi('int mgos_ssd1306_get_width(void *)'),
-  _getHeight: ffi('int mgos_ssd1306_get_height (void *)'),
-  _clear: ffi('void mgos_ssd1306_clear (void *)'),
-  _refresh: ffi('void mgos_ssd1306_refresh (void *, bool)'),
-  _drawPixel: ffi('void mgos_ssd1306_draw_pixel (void *, int, int, int)'),
-  _drawHLine: ffi('void mgos_ssd1306_draw_hline (void *, int, int, int, int)'),
-  _drawVLine: ffi('void mgos_ssd1306_draw_vline (void *, int, int, int, int)'),
-  _drawRectangle: ffi('void mgos_ssd1306_draw_rectangle (void *, int, int, int, int, int)'),
-  _fillRectangle: ffi('void mgos_ssd1306_fill_rectangle (void *, int, int, int, int, int)'),
-  _drawCircle: ffi('void mgos_ssd1306_draw_circle (void *, int, int, int, int)'),
-  _fillCircle: ffi('void mgos_ssd1306_fill_circle (void *, int, int, int, int)'),
-  _selectFont: ffi('void mgos_ssd1306_select_font (void *, int)'),
-  _drawChar: ffi('int mgos_ssd1306_draw_char (void *, int, int, int, int, int)'),
-  _drawString: ffi('int mgos_ssd1306_draw_string(void *, int, int, char *)'),
-  _drawStringColor: ffi('int mgos_ssd1306_draw_string_color(void *, int, int, char *, int, int)'),
-  _measureString: ffi('int mgos_ssd1306_measure_string(void *, char *)'),
-  _getFontHeight: ffi('int mgos_ssd1306_get_font_height(void *)'),
-  _getFontC: ffi('int mgos_ssd1306_get_font_c(void *)'),
-  _invertDisplay: ffi('void mgos_ssd1306_invert_display(void *, bool)'),
-  _flipDisplay: ffi('void mgos_ssd1306_flip_display(void *, bool, bool)'),
-  _rotateDisplay: ffi('void mgos_ssd1306_rotate_display(void *, int)'),
-  _updateBuffer: ffi('void mgos_ssd1306_update_buffer(void *, void *, int)'),
-  _command: ffi('void mgos_ssd1306_command(void *, int)'),
-  _start: ffi('void mgos_ssd1306_start(void *)'),
+  _getGlobal: ffi('void *mgos_sh1106_get_global(void)'),
+  _getWidth: ffi('int mgos_sh1106_get_width(void *)'),
+  _getHeight: ffi('int mgos_sh1106_get_height (void *)'),
+  _clear: ffi('void mgos_sh1106_clear (void *)'),
+  _refresh: ffi('void mgos_sh1106_refresh (void *, bool)'),
+  _drawPixel: ffi('void mgos_sh1106_draw_pixel (void *, int, int, int)'),
+  _drawHLine: ffi('void mgos_sh1106_draw_hline (void *, int, int, int, int)'),
+  _drawVLine: ffi('void mgos_sh1106_draw_vline (void *, int, int, int, int)'),
+  _drawRectangle: ffi('void mgos_sh1106_draw_rectangle (void *, int, int, int, int, int)'),
+  _fillRectangle: ffi('void mgos_sh1106_fill_rectangle (void *, int, int, int, int, int)'),
+  _drawCircle: ffi('void mgos_sh1106_draw_circle (void *, int, int, int, int)'),
+  _fillCircle: ffi('void mgos_sh1106_fill_circle (void *, int, int, int, int)'),
+  _selectFont: ffi('void mgos_sh1106_select_font (void *, int)'),
+  _drawChar: ffi('int mgos_sh1106_draw_char (void *, int, int, int, int, int)'),
+  _drawString: ffi('int mgos_sh1106_draw_string(void *, int, int, char *)'),
+  _drawStringColor: ffi('int mgos_sh1106_draw_string_color(void *, int, int, char *, int, int)'),
+  _measureString: ffi('int mgos_sh1106_measure_string(void *, char *)'),
+  _getFontHeight: ffi('int mgos_sh1106_get_font_height(void *)'),
+  _getFontC: ffi('int mgos_sh1106_get_font_c(void *)'),
+  _invertDisplay: ffi('void mgos_sh1106_invert_display(void *, bool)'),
+  _flipDisplay: ffi('void mgos_sh1106_flip_display(void *, bool, bool)'),
+  _rotateDisplay: ffi('void mgos_sh1106_rotate_display(void *, int)'),
+  _updateBuffer: ffi('void mgos_sh1106_update_buffer(void *, void *, int)'),
+  _command: ffi('void mgos_sh1106_command(void *, int)'),
+  _start: ffi('void mgos_sh1106_start(void *)'),
   
   /**
    * @brief Init function, need to be called before using the api
    */
   init: function() {
     let myI2C = I2C.get_default();
-    I2C.write(myI2C, Cfg.get('ssd1306.address'), "\0x0", 1, 1);
+    I2C.write(myI2C, Cfg.get('sh1106.address'), "\0x0", 1, 1);
     this._oled = this._getGlobal();
     this._start(this._oled);
     this.clear();

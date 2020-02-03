@@ -20,7 +20,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  **/
-#include "ssd1306.h"
+#include "sh1106.h"
 
 #ifdef __GNUC__
 #define UNUSED(x) x __attribute__((unused))
@@ -28,7 +28,7 @@
 #define UNUSED(x) x
 #endif
 
-typedef struct mgos_ssd1306 {
+typedef struct mgos_sh1106 {
   uint8_t address;              // I2C address
   uint8_t width;                // panel width
   uint8_t height;               // panel height
@@ -42,16 +42,16 @@ typedef struct mgos_ssd1306 {
   const font_info_t *font;      // current font
   struct mgos_i2c *i2c;         // i2c connection
   uint8_t buffer[0];            // display buffer (continues beyond the struct)
-} mgos_ssd1306;
+} mgos_sh1106;
 
-static struct mgos_ssd1306 *s_global_ssd1306;
+static struct mgos_sh1106 *s_global_sh1106;
 
-static inline bool _command (struct mgos_ssd1306 *oled, uint8_t cmd) {
+static inline bool _command (struct mgos_sh1106 *oled, uint8_t cmd) {
   return mgos_i2c_write_reg_b (oled->i2c, oled->address, 0x80, cmd);
 }
 
-struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg) {
-  struct mgos_ssd1306 *oled = NULL;
+struct mgos_sh1106 *mgos_sh1106_create (const struct mgos_config_sh1106 *cfg) {
+  struct mgos_sh1106 *oled = NULL;
   oled = calloc (1, sizeof (*oled) + cfg->width * cfg->height / 8);
   if (oled == NULL)
     return NULL;
@@ -62,7 +62,7 @@ struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg)
   oled->col_offset = cfg->col_offset;
   oled->com_pins = cfg->com_pins;
   if (cfg->i2c.enable && cfg->i2c.scl_gpio != -1 && cfg->i2c.sda_gpio != -1) {
-    LOG (LL_INFO, ("Using SSD1306 GPIO config"));
+    LOG (LL_INFO, ("Using sh1106 GPIO config"));
     struct mgos_config_i2c *i2c_cfg = NULL;
     i2c_cfg = calloc (1, sizeof (*i2c_cfg));
     if (i2c_cfg == NULL)
@@ -116,24 +116,24 @@ struct mgos_ssd1306 *mgos_ssd1306_create (const struct mgos_config_ssd1306 *cfg)
   _command (oled, 0x22);        // 0x22 for external Vcc
 
   LOG (LL_DEBUG, ("Clearing screen buffer"));
-  mgos_ssd1306_clear (oled);
-  mgos_ssd1306_refresh (oled, true);
-  mgos_ssd1306_select_font (oled, 0);
+  mgos_sh1106_clear (oled);
+  mgos_sh1106_refresh (oled, true);
+  mgos_sh1106_select_font (oled, 0);
 
   LOG (LL_DEBUG, ("Turning on display"));
   // _command (oled, 0x2e);        // SSD1306_SCROLLSTOP
   _command (oled, 0xaf);        // SSD1306_DISPLAYON
 
-  LOG (LL_INFO, ("SSD1306 init ok (width: %d, height: %d, address: 0x%02x)", oled->width, oled->height, oled->address));
+  LOG (LL_INFO, ("sh1106 init ok (width: %d, height: %d, address: 0x%02x)", oled->width, oled->height, oled->address));
   return oled;
 
 out_err:
-  LOG (LL_ERROR, ("SSD1306 setup failed"));
+  LOG (LL_ERROR, ("sh1106 setup failed"));
   free (oled);
   return NULL;
 }
 
-void mgos_ssd1306_close (struct mgos_ssd1306 *oled) {
+void mgos_sh1106_close (struct mgos_sh1106 *oled) {
   if (oled == NULL)
     return;
 
@@ -150,21 +150,21 @@ void mgos_ssd1306_close (struct mgos_ssd1306 *oled) {
   free (oled);
 }
 
-uint8_t mgos_ssd1306_get_width (struct mgos_ssd1306 *oled) {
+uint8_t mgos_sh1106_get_width (struct mgos_sh1106 *oled) {
   if (oled == NULL)
     return 0;
 
   return oled->width;
 }
 
-uint8_t mgos_ssd1306_get_height (struct mgos_ssd1306 * oled) {
+uint8_t mgos_sh1106_get_height (struct mgos_sh1106 * oled) {
   if (oled == NULL)
     return 0;
 
   return oled->height;
 }
 
-void mgos_ssd1306_clear (struct mgos_ssd1306 *oled) {
+void mgos_sh1106_clear (struct mgos_sh1106 *oled) {
   if (oled == NULL)
     return;
 
@@ -175,7 +175,7 @@ void mgos_ssd1306_clear (struct mgos_ssd1306 *oled) {
   oled->refresh_left = 0;
 }
 
-void mgos_ssd1306_refresh (struct mgos_ssd1306 *oled, bool force) {
+void mgos_sh1106_refresh (struct mgos_sh1106 *oled, bool force) {
   uint8_t page_start, page_end;
 
   if (oled == NULL)
@@ -212,7 +212,7 @@ void mgos_ssd1306_refresh (struct mgos_ssd1306 *oled, bool force) {
   oled->refresh_bottom = 0;
 }
 
-void mgos_ssd1306_draw_pixel (struct mgos_ssd1306 *oled, int8_t x, int8_t y, mgos_ssd1306_color_t color) {
+void mgos_sh1106_draw_pixel (struct mgos_sh1106 *oled, int8_t x, int8_t y, mgos_sh1106_color_t color) {
   uint16_t UNUSED (index) = x + (y / 8) * oled->width;
   if (oled == NULL)
     return;
@@ -221,13 +221,13 @@ void mgos_ssd1306_draw_pixel (struct mgos_ssd1306 *oled, int8_t x, int8_t y, mgo
     return;
 
   switch (color) {
-  case SSD1306_COLOR_WHITE:
+  case SH1106_COLOR_WHITE:
     oled->buffer[index] |= (1 << (y & 7));
     break;
-  case SSD1306_COLOR_BLACK:
+  case SH1106_COLOR_BLACK:
     oled->buffer[index] &= ~(1 << (y & 7));
     break;
-  case SSD1306_COLOR_INVERT:
+  case SH1106_COLOR_INVERT:
     oled->buffer[index] ^= (1 << (y & 7));
     break;
   default:
@@ -243,7 +243,7 @@ void mgos_ssd1306_draw_pixel (struct mgos_ssd1306 *oled, int8_t x, int8_t y, mgo
     oled->refresh_bottom = y;
 }
 
-void mgos_ssd1306_draw_hline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uint8_t w, mgos_ssd1306_color_t color) {
+void mgos_sh1106_draw_hline (struct mgos_sh1106 *oled, int8_t x, int8_t y, uint8_t w, mgos_sh1106_color_t color) {
   uint16_t UNUSED (index);
   uint8_t mask, t;
 
@@ -261,20 +261,20 @@ void mgos_ssd1306_draw_hline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
   index = x + (y / 8) * oled->width;
   mask = 1 << (y & 7);
   switch (color) {
-  case SSD1306_COLOR_WHITE:
+  case SH1106_COLOR_WHITE:
     while (t--) {
       oled->buffer[index] |= mask;
       ++index;
     }
     break;
-  case SSD1306_COLOR_BLACK:
+  case SH1106_COLOR_BLACK:
     mask = ~mask;
     while (t--) {
       oled->buffer[index] &= mask;
       ++index;
     }
     break;
-  case SSD1306_COLOR_INVERT:
+  case SH1106_COLOR_INVERT:
     while (t--) {
       oled->buffer[index] ^= mask;
       ++index;
@@ -293,7 +293,7 @@ void mgos_ssd1306_draw_hline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
     oled->refresh_bottom = y;
 }
 
-void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uint8_t h, mgos_ssd1306_color_t color) {
+void mgos_sh1106_draw_vline (struct mgos_sh1106 *oled, int8_t x, int8_t y, uint8_t h, mgos_sh1106_color_t color) {
   uint16_t UNUSED (index);
   uint8_t mask, mod, t;
 
@@ -319,13 +319,13 @@ void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
     if (t < mod)
       mask &= (0xFF >> (mod - t));
     switch (color) {
-    case SSD1306_COLOR_WHITE:
+    case SH1106_COLOR_WHITE:
       oled->buffer[index] |= mask;
       break;
-    case SSD1306_COLOR_BLACK:
+    case SH1106_COLOR_BLACK:
       oled->buffer[index] &= ~mask;
       break;
-    case SSD1306_COLOR_INVERT:
+    case SH1106_COLOR_INVERT:
       oled->buffer[index] ^= mask;
       break;
     default:
@@ -339,7 +339,7 @@ void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
   if (t >= 8)                   // byte aligned line at middle
   {
     switch (color) {
-    case SSD1306_COLOR_WHITE:
+    case SH1106_COLOR_WHITE:
       do {
         oled->buffer[index] = 0xff;
         index += oled->width;
@@ -347,7 +347,7 @@ void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
       }
       while (t >= 8);
       break;
-    case SSD1306_COLOR_BLACK:
+    case SH1106_COLOR_BLACK:
       do {
         oled->buffer[index] = 0x00;
         index += oled->width;
@@ -355,7 +355,7 @@ void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
       }
       while (t >= 8);
       break;
-    case SSD1306_COLOR_INVERT:
+    case SH1106_COLOR_INVERT:
       do {
         oled->buffer[index] = ~oled->buffer[index];
         index += oled->width;
@@ -373,13 +373,13 @@ void mgos_ssd1306_draw_vline (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uin
     static const uint8_t postmask[8] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F };
     mask = postmask[mod];
     switch (color) {
-    case SSD1306_COLOR_WHITE:
+    case SH1106_COLOR_WHITE:
       oled->buffer[index] |= mask;
       break;
-    case SSD1306_COLOR_BLACK:
+    case SH1106_COLOR_BLACK:
       oled->buffer[index] &= ~mask;
       break;
-    case SSD1306_COLOR_INVERT:
+    case SH1106_COLOR_INVERT:
       oled->buffer[index] ^= mask;
       break;
     default:
@@ -398,21 +398,21 @@ draw_vline_finish:
   return;
 }
 
-void mgos_ssd1306_draw_rectangle (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uint8_t w, uint8_t h, mgos_ssd1306_color_t color) {
-  mgos_ssd1306_draw_hline (oled, x, y, w, color);
-  mgos_ssd1306_draw_hline (oled, x, y + h - 1, w, color);
-  mgos_ssd1306_draw_vline (oled, x, y, h, color);
-  mgos_ssd1306_draw_vline (oled, x + w - 1, y, h, color);
+void mgos_sh1106_draw_rectangle (struct mgos_sh1106 *oled, int8_t x, int8_t y, uint8_t w, uint8_t h, mgos_sh1106_color_t color) {
+  mgos_sh1106_draw_hline (oled, x, y, w, color);
+  mgos_sh1106_draw_hline (oled, x, y + h - 1, w, color);
+  mgos_sh1106_draw_vline (oled, x, y, h, color);
+  mgos_sh1106_draw_vline (oled, x + w - 1, y, h, color);
 }
 
-void mgos_ssd1306_fill_rectangle (struct mgos_ssd1306 *oled, int8_t x, int8_t y, uint8_t w, uint8_t h, mgos_ssd1306_color_t color) {
+void mgos_sh1106_fill_rectangle (struct mgos_sh1106 *oled, int8_t x, int8_t y, uint8_t w, uint8_t h, mgos_sh1106_color_t color) {
   // Can be optimized?
   uint8_t i;
   for (i = x; i < x + w; ++i)
-    mgos_ssd1306_draw_vline (oled, i, y, h, color);
+    mgos_sh1106_draw_vline (oled, i, y, h, color);
 }
 
-void mgos_ssd1306_draw_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, uint8_t r, mgos_ssd1306_color_t color) {
+void mgos_sh1106_draw_circle (struct mgos_sh1106 *oled, int8_t x0, int8_t y0, uint8_t r, mgos_sh1106_color_t color) {
   // Refer to http://en.wikipedia.org/wiki/Midpoint_circle_algorithm for the algorithm
 
   int8_t x = r;
@@ -425,24 +425,24 @@ void mgos_ssd1306_draw_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, 
   if (r == 0)
     return;
 
-  mgos_ssd1306_draw_pixel (oled, x0 - r, y0, color);
-  mgos_ssd1306_draw_pixel (oled, x0 + r, y0, color);
-  mgos_ssd1306_draw_pixel (oled, x0, y0 - r, color);
-  mgos_ssd1306_draw_pixel (oled, x0, y0 + r, color);
+  mgos_sh1106_draw_pixel (oled, x0 - r, y0, color);
+  mgos_sh1106_draw_pixel (oled, x0 + r, y0, color);
+  mgos_sh1106_draw_pixel (oled, x0, y0 - r, color);
+  mgos_sh1106_draw_pixel (oled, x0, y0 + r, color);
 
   while (x >= y) {
-    mgos_ssd1306_draw_pixel (oled, x0 + x, y0 + y, color);
-    mgos_ssd1306_draw_pixel (oled, x0 - x, y0 + y, color);
-    mgos_ssd1306_draw_pixel (oled, x0 + x, y0 - y, color);
-    mgos_ssd1306_draw_pixel (oled, x0 - x, y0 - y, color);
+    mgos_sh1106_draw_pixel (oled, x0 + x, y0 + y, color);
+    mgos_sh1106_draw_pixel (oled, x0 - x, y0 + y, color);
+    mgos_sh1106_draw_pixel (oled, x0 + x, y0 - y, color);
+    mgos_sh1106_draw_pixel (oled, x0 - x, y0 - y, color);
     if (x != y) {
       /* Otherwise the 4 drawings below are the same as above, causing
        * problem when color is INVERT
        */
-      mgos_ssd1306_draw_pixel (oled, x0 + y, y0 + x, color);
-      mgos_ssd1306_draw_pixel (oled, x0 - y, y0 + x, color);
-      mgos_ssd1306_draw_pixel (oled, x0 + y, y0 - x, color);
-      mgos_ssd1306_draw_pixel (oled, x0 - y, y0 - x, color);
+      mgos_sh1106_draw_pixel (oled, x0 + y, y0 + x, color);
+      mgos_sh1106_draw_pixel (oled, x0 - y, y0 + x, color);
+      mgos_sh1106_draw_pixel (oled, x0 + y, y0 - x, color);
+      mgos_sh1106_draw_pixel (oled, x0 - y, y0 - x, color);
     }
     ++y;
     if (radius_err < 0) {
@@ -455,7 +455,7 @@ void mgos_ssd1306_draw_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, 
   }
 }
 
-void mgos_ssd1306_fill_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, uint8_t r, mgos_ssd1306_color_t color) {
+void mgos_sh1106_fill_circle (struct mgos_sh1106 *oled, int8_t x0, int8_t y0, uint8_t r, mgos_sh1106_color_t color) {
   int8_t x = 1;
   int8_t y = r;
   int16_t radius_err = 1 - y;
@@ -467,13 +467,13 @@ void mgos_ssd1306_fill_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, 
   if (r == 0)
     return;
 
-  mgos_ssd1306_draw_vline (oled, x0, y0 - r, 2 * r + 1, color); // Center vertical line
+  mgos_sh1106_draw_vline (oled, x0, y0 - r, 2 * r + 1, color); // Center vertical line
   while (y >= x) {
-    mgos_ssd1306_draw_vline (oled, x0 - x, y0 - y, 2 * y + 1, color);
-    mgos_ssd1306_draw_vline (oled, x0 + x, y0 - y, 2 * y + 1, color);
-    if (color != SSD1306_COLOR_INVERT) {
-      mgos_ssd1306_draw_vline (oled, x0 - y, y0 - x, 2 * x + 1, color);
-      mgos_ssd1306_draw_vline (oled, x0 + y, y0 - x, 2 * x + 1, color);
+    mgos_sh1106_draw_vline (oled, x0 - x, y0 - y, 2 * y + 1, color);
+    mgos_sh1106_draw_vline (oled, x0 + x, y0 - y, 2 * y + 1, color);
+    if (color != SH1106_COLOR_INVERT) {
+      mgos_sh1106_draw_vline (oled, x0 - y, y0 - x, 2 * x + 1, color);
+      mgos_sh1106_draw_vline (oled, x0 + y, y0 - x, 2 * x + 1, color);
     }
     ++x;
     if (radius_err < 0) {
@@ -484,19 +484,19 @@ void mgos_ssd1306_fill_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, 
     }
   }
 
-  if (color == SSD1306_COLOR_INVERT) {
+  if (color == SH1106_COLOR_INVERT) {
     x1 = x;                     // Save where we stopped
 
     y = 1;
     x = r;
     radius_err = 1 - x;
-    mgos_ssd1306_draw_hline (oled, x0 + x1, y0, r - x1 + 1, color);
-    mgos_ssd1306_draw_hline (oled, x0 - r, y0, r - x1 + 1, color);
+    mgos_sh1106_draw_hline (oled, x0 + x1, y0, r - x1 + 1, color);
+    mgos_sh1106_draw_hline (oled, x0 - r, y0, r - x1 + 1, color);
     while (x >= y) {
-      mgos_ssd1306_draw_hline (oled, x0 + x1, y0 - y, x - x1 + 1, color);
-      mgos_ssd1306_draw_hline (oled, x0 + x1, y0 + y, x - x1 + 1, color);
-      mgos_ssd1306_draw_hline (oled, x0 - x, y0 - y, x - x1 + 1, color);
-      mgos_ssd1306_draw_hline (oled, x0 - x, y0 + y, x - x1 + 1, color);
+      mgos_sh1106_draw_hline (oled, x0 + x1, y0 - y, x - x1 + 1, color);
+      mgos_sh1106_draw_hline (oled, x0 + x1, y0 + y, x - x1 + 1, color);
+      mgos_sh1106_draw_hline (oled, x0 - x, y0 - y, x - x1 + 1, color);
+      mgos_sh1106_draw_hline (oled, x0 - x, y0 + y, x - x1 + 1, color);
       ++y;
       if (radius_err < 0) {
         radius_err += 2 * y + 1;
@@ -508,7 +508,7 @@ void mgos_ssd1306_fill_circle (struct mgos_ssd1306 *oled, int8_t x0, int8_t y0, 
   }
 }
 
-void mgos_ssd1306_select_font (struct mgos_ssd1306 *oled, uint8_t font) {
+void mgos_sh1106_select_font (struct mgos_sh1106 *oled, uint8_t font) {
   if (oled == NULL)
     return;
   if (font < NUM_FONTS)
@@ -516,7 +516,7 @@ void mgos_ssd1306_select_font (struct mgos_ssd1306 *oled, uint8_t font) {
 }
 
 // return character width
-uint8_t mgos_ssd1306_draw_char (struct mgos_ssd1306 *oled, uint8_t x, uint8_t y, unsigned char c, mgos_ssd1306_color_t foreground, mgos_ssd1306_color_t background) {
+uint8_t mgos_sh1106_draw_char (struct mgos_sh1106 *oled, uint8_t x, uint8_t y, unsigned char c, mgos_sh1106_color_t foreground, mgos_sh1106_color_t background) {
   uint8_t i, j;
   const uint8_t UNUSED (*bitmap);
   uint8_t line = 0;
@@ -538,17 +538,17 @@ uint8_t mgos_ssd1306_draw_char (struct mgos_ssd1306 *oled, uint8_t x, uint8_t y,
         line = bitmap[(oled->font->char_descriptors[c].width + 7) / 8 * j + i / 8];     // line data
       }
       if (line & 0x80) {
-        mgos_ssd1306_draw_pixel (oled, x + i, y + j, foreground);
+        mgos_sh1106_draw_pixel (oled, x + i, y + j, foreground);
       } else {
         switch (background) {
-        case SSD1306_COLOR_TRANSPARENT:
+        case SH1106_COLOR_TRANSPARENT:
           // Not drawing for transparent background
           break;
-        case SSD1306_COLOR_WHITE:
-        case SSD1306_COLOR_BLACK:
-          mgos_ssd1306_draw_pixel (oled, x + i, y + j, background);
+        case SH1106_COLOR_WHITE:
+        case SH1106_COLOR_BLACK:
+          mgos_sh1106_draw_pixel (oled, x + i, y + j, background);
           break;
-        case SSD1306_COLOR_INVERT:
+        case SH1106_COLOR_INVERT:
           // I don't know why I need invert background
           break;
         }
@@ -562,8 +562,8 @@ uint8_t mgos_ssd1306_draw_char (struct mgos_ssd1306 *oled, uint8_t x, uint8_t y,
 /*
 Multi-line support
 */
-uint8_t mgos_ssd1306_draw_string_color (struct mgos_ssd1306 * oled, uint8_t x, uint8_t y, const char *str,
-                                        mgos_ssd1306_color_t foreground, mgos_ssd1306_color_t background) {
+uint8_t mgos_sh1106_draw_string_color (struct mgos_sh1106 * oled, uint8_t x, uint8_t y, const char *str,
+                                        mgos_sh1106_color_t foreground, mgos_sh1106_color_t background) {
   uint8_t i = 0, t = x;
   uint8_t width_inc = oled->width;
 
@@ -577,7 +577,7 @@ uint8_t mgos_ssd1306_draw_string_color (struct mgos_ssd1306 * oled, uint8_t x, u
     return 0;
 
   while (*str) {
-    x += mgos_ssd1306_draw_char (oled, x, y, *str, foreground, background);
+    x += mgos_sh1106_draw_char (oled, x, y, *str, foreground, background);
     ++str;
     if (*str)
       x += oled->font->c;
@@ -591,12 +591,12 @@ uint8_t mgos_ssd1306_draw_string_color (struct mgos_ssd1306 * oled, uint8_t x, u
   return (i - t);
 }
 
-uint8_t mgos_ssd1306_draw_string (struct mgos_ssd1306 * oled, uint8_t x, uint8_t y, const char *str) {
-  return mgos_ssd1306_draw_string_color (oled, x, y, str, SSD1306_COLOR_WHITE, SSD1306_COLOR_TRANSPARENT);
+uint8_t mgos_sh1106_draw_string (struct mgos_sh1106 * oled, uint8_t x, uint8_t y, const char *str) {
+  return mgos_sh1106_draw_string_color (oled, x, y, str, SH1106_COLOR_WHITE, SH1106_COLOR_TRANSPARENT);
 }
 
 // return width of string
-uint8_t mgos_ssd1306_measure_string (struct mgos_ssd1306 * oled, const char *str) {
+uint8_t mgos_sh1106_measure_string (struct mgos_sh1106 * oled, const char *str) {
   uint8_t w = 0;
   unsigned char c;
 
@@ -620,7 +620,7 @@ uint8_t mgos_ssd1306_measure_string (struct mgos_ssd1306 * oled, const char *str
   return w;
 }
 
-uint8_t mgos_ssd1306_get_font_height (struct mgos_ssd1306 * oled) {
+uint8_t mgos_sh1106_get_font_height (struct mgos_sh1106 * oled) {
 
   if (oled == NULL)
     return 0;
@@ -631,7 +631,7 @@ uint8_t mgos_ssd1306_get_font_height (struct mgos_ssd1306 * oled) {
   return (oled->font->height);
 }
 
-uint8_t mgos_ssd1306_get_font_c (struct mgos_ssd1306 * oled) {
+uint8_t mgos_sh1106_get_font_c (struct mgos_sh1106 * oled) {
 
   if (oled == NULL)
     return 0;
@@ -642,7 +642,7 @@ uint8_t mgos_ssd1306_get_font_c (struct mgos_ssd1306 * oled) {
   return (oled->font->c);
 }
 
-void mgos_ssd1306_invert_display (struct mgos_ssd1306 *oled, bool invert) {
+void mgos_sh1106_invert_display (struct mgos_sh1106 *oled, bool invert) {
   if (oled == NULL)
     return;
 
@@ -655,7 +655,7 @@ void mgos_ssd1306_invert_display (struct mgos_ssd1306 *oled, bool invert) {
 /*
   TODO: Doesn't work in SH 1106. 
 */
-// void mgos_ssd1306_rotate_display (struct mgos_ssd1306 *oled, bool alt) {
+// void mgos_sh1106_rotate_display (struct mgos_sh1106 *oled, bool alt) {
 //   if (oled == NULL)
 //     return;
 
@@ -668,7 +668,7 @@ void mgos_ssd1306_invert_display (struct mgos_ssd1306 *oled, bool invert) {
 //   }
 // }
 
-void mgos_ssd1306_flip_display (struct mgos_ssd1306 *oled, bool horizontal, bool vertical) {
+void mgos_sh1106_flip_display (struct mgos_sh1106 *oled, bool horizontal, bool vertical) {
   if (oled == NULL)
     return;
 
@@ -678,7 +678,7 @@ void mgos_ssd1306_flip_display (struct mgos_ssd1306 *oled, bool horizontal, bool
   _command (oled, vertical ? 0xc0 : 0xc8);
 }
 
-void mgos_ssd1306_update_buffer (struct mgos_ssd1306 *oled, uint8_t * data, uint16_t length) {
+void mgos_sh1106_update_buffer (struct mgos_sh1106 *oled, uint8_t * data, uint16_t length) {
   if (oled == NULL)
     return;
 
@@ -689,15 +689,15 @@ void mgos_ssd1306_update_buffer (struct mgos_ssd1306 *oled, uint8_t * data, uint
   oled->refresh_left = 0;
 }
 
-void mgos_ssd1306_command (struct mgos_ssd1306 *oled, uint8_t cmd) {
+void mgos_sh1106_command (struct mgos_sh1106 *oled, uint8_t cmd) {
   if (oled == NULL)
     return;
 
   _command (oled, cmd);
 }
 
-void mgos_ssd1306_start (struct mgos_ssd1306 *oled) {
-  int rstPin = mgos_sys_config_get_ssd1306_rst_gpio();
+void mgos_sh1106_start (struct mgos_sh1106 *oled) {
+  int rstPin = mgos_sys_config_get_sh1106_rst_gpio();
   if (rstPin >= 0) {
     LOG (LL_INFO, ("Found reset pin %d", rstPin));
     mgos_gpio_setup_output(rstPin, 0);
@@ -707,15 +707,15 @@ void mgos_ssd1306_start (struct mgos_ssd1306 *oled) {
   (void) oled;
 }
 
-bool mgos_ssd1306_init (void) {
-  if (!mgos_sys_config_get_ssd1306_enable ())
+bool mgos_sh1106_init (void) {
+  if (!mgos_sys_config_get_sh1106_enable ())
     return true;
 
-  s_global_ssd1306 = mgos_ssd1306_create (mgos_sys_config_get_ssd1306 ());
+  s_global_sh1106 = mgos_sh1106_create (mgos_sys_config_get_sh1106 ());
 
-  return (s_global_ssd1306 != NULL);
+  return (s_global_sh1106 != NULL);
 }
 
-struct mgos_ssd1306 *mgos_ssd1306_get_global (void) {
-  return s_global_ssd1306;
+struct mgos_sh1106 *mgos_sh1106_get_global (void) {
+  return s_global_sh1106;
 }
