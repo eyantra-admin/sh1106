@@ -182,23 +182,12 @@ void mgos_ssd1306_refresh (struct mgos_ssd1306 *oled, bool force) {
     return;
 
   if (force || (oled->refresh_top <= 0 && oled->refresh_bottom >= oled->height - 1 && oled->refresh_left <= 0 && oled->refresh_right >= oled->width - 1)) {
-    // _command (oled, 0x21);          // SH 1106 doesn't have this; SSD1306_COLUMNADDR
-    // _command (oled, oled->col_offset);                    // column start
-    // _command (oled, oled->col_offset + oled->width - 1);  // column end
-    // FOR SH 1106
-    // SH 1106 has by default column addressing mode which increments column by 1
-    // _command (oled, 0x00 | (oled->col_offset & 0x0f));         // Send col address lower 4
-    // _command (oled, 0x10 | ((oled->col_offset & 0xf0) >> 4));  // Send col address higher 4
-   
-    // _command (oled, 0x22);         // SH 1106 doesn't have this; SSD1306_PAGEADDR
-    // _command (oled, 0);                         // page start
-    // _command (oled, (oled->height / 8) - 1);    // page end
     // FOR SH 1106
     page_start = 0;
     page_end = (oled->height / 8) - 1;
     for (uint8_t i = page_start; i <= page_end; i++) {
       _command (oled, 0x00 | (oled->col_offset & 0x0f));         // Send col address lower 4
-      _command (oled, 0x10 | ((oled->col_offset & 0xf0) >> 4));  // Send col address higher 4
+      _command (oled, 0x10 | ((oled->col_offset >> 4) & 0xf0));  // Send col address higher 4
       _command (oled, 0xB0 | i);         // page start address
       // write width (128) bytes (along the columns) -->
       mgos_i2c_write_reg_n (oled->i2c, oled->address, 0x40, oled->width, oled->buffer + i * oled->width);
@@ -207,19 +196,9 @@ void mgos_ssd1306_refresh (struct mgos_ssd1306 *oled, bool force) {
              && (oled->refresh_left <= oled->refresh_right)) {
     page_start = oled->refresh_top / 8;
     page_end = oled->refresh_bottom / 8;
-    // _command (oled, 0x21);          // SH 1106 doesn't have this; SSD1306_COLUMNADDR
-    // _command (oled, oled->col_offset + oled->refresh_left);   // column start
-    // _command (oled, oled->col_offset + oled->refresh_right);  // column end
-    // _command (oled, 0x00 | ((oled->col_offset + oled->refresh_left) & 0x0f));        // Send starting col address lower 4
-    // _command (oled, 0x10 | (((oled->col_offset + oled->refresh_left) & 0xf0) >> 4));  // Send starting col address higher 4
-
-    // _command (oled, 0x22);         // SH 1106 doesn't have this; SSD1306_PAGEADDR
-    // _command (oled, page_start);  // page start
-    // _command (oled, page_end);    // page end
-
     for (uint8_t i = page_start; i <= page_end; ++i) {
       _command (oled, 0x00 | ((oled->col_offset + oled->refresh_left) & 0x0f));        // Send starting col address lower 4
-      _command (oled, 0x10 | (((oled->col_offset + oled->refresh_left) & 0xf0) >> 4));  // Send starting col address higher 4
+      _command (oled, 0x10 | (((oled->col_offset + oled->refresh_left) >> 4) & 0xf0));  // Send starting col address higher 4
       uint16_t start = i * oled->width + oled->refresh_left;
       uint16_t len = oled->refresh_right - oled->refresh_left + 1;
       _command (oled, 0xB0 | i);
@@ -580,9 +559,13 @@ uint8_t mgos_ssd1306_draw_char (struct mgos_ssd1306 *oled, uint8_t x, uint8_t y,
   return (oled->font->char_descriptors[c].width);
 }
 
+/*
+Multi-line support
+*/
 uint8_t mgos_ssd1306_draw_string_color (struct mgos_ssd1306 * oled, uint8_t x, uint8_t y, const char *str,
                                         mgos_ssd1306_color_t foreground, mgos_ssd1306_color_t background) {
-  uint8_t t = x;
+  uint8_t i = 0, t = x;
+  uint8_t width_inc = oled->width;
 
   if (oled == NULL)
     return 0;
@@ -598,9 +581,14 @@ uint8_t mgos_ssd1306_draw_string_color (struct mgos_ssd1306 * oled, uint8_t x, u
     ++str;
     if (*str)
       x += oled->font->c;
+    if (x >= width_inc) {
+      i += x;
+      x = t;
+      y += 10;
+    }
   }
 
-  return (x - t);
+  return (i - t);
 }
 
 uint8_t mgos_ssd1306_draw_string (struct mgos_ssd1306 * oled, uint8_t x, uint8_t y, const char *str) {
@@ -664,25 +652,29 @@ void mgos_ssd1306_invert_display (struct mgos_ssd1306 *oled, bool invert) {
     _command (oled, 0xa6);      // SSD1306_NORMALDISPLAY
 }
 
-void mgos_ssd1306_rotate_display (struct mgos_ssd1306 *oled, bool alt) {
-  if (oled == NULL)
-    return;
+/*
+  TODO: Doesn't work in SH 1106. 
+*/
+// void mgos_ssd1306_rotate_display (struct mgos_ssd1306 *oled, bool alt) {
+//   if (oled == NULL)
+//     return;
 
-  if (alt) {
-    _command (oled, 0xA1);
-    _command (oled, 0xC8);
-  } else {
-    _command (oled, 0xA0);
-    _command (oled, 0xC0);
-  }
-}
+//   if (alt) {
+//     _command (oled, 0xA1);
+//     _command (oled, 0xC8);
+//   } else {
+//     _command (oled, 0xA0);
+//     _command (oled, 0xC0);
+//   }
+// }
 
 void mgos_ssd1306_flip_display (struct mgos_ssd1306 *oled, bool horizontal, bool vertical) {
   if (oled == NULL)
     return;
 
-  _command (oled, 0xda);
-  _command (oled, oled->com_pins | (horizontal << 5));
+  // _command (oled, 0xda);
+  // _command (oled, oled->com_pins | (horizontal << 5));
+  _command (oled, horizontal ? 0xa0 : 0xa1);
   _command (oled, vertical ? 0xc0 : 0xc8);
 }
 
